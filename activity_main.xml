@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#090418">
+
+    <WebView
+        android:id="@+id/gameWebView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Subtle corner mode badge (TV Board vs Counter PC) -->
+    <TextView
+        android:id="@+id/modeBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="10dp"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"
+        android:text="TV SCREEN"
+        android:textColor="#FACC15"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:background="#AA140A33" />
+</FrameLayout>

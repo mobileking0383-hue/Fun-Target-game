@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fun Counter Game — Admin Web, TV Display & Counter PC</title>
+  <style>
+    :root {
+      --bg-dark: #090418;
+      --bg-card: #140b2e;
+      --bg-card-2: #1d1042;
+      --gold: #facc15;
+      --gold-2: #f59e0b;
+      --green: #16a34a;
+      --green-glow: #22c55e;
+      --red: #dc2626;
+      --red-glow: #f43f5e;
+      --text: #ffffff;
+      --muted: #c4b5fd;
+      --border: rgba(250, 204, 21, 0.28);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 15%, rgba(139, 92, 246, 0.35), transparent 45%),
+        radial-gradient(circle at 82% 18%, rgba(236, 72, 153, 0.25), transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(37, 99, 235, 0.28), transparent 55%),
+        var(--bg-dark);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Top Bar (Hidden on TV Screen mode) */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 18px;
+      background: rgba(12, 6, 30, 0.92);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    body.mode-tv .topbar,
+    body.mode-tv .secret-lock-btn { display: none !important; }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--gold);
+      letter-spacing: 0.4px;
+    }
+    .nav-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
+      color: #160a2c;
+      border-color: var(--gold);
+    }
+
+    /* Secret corner lock trigger (hidden on TV mode) */
+    .secret-lock-btn {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      z-index: 35;
+      background: rgba(20, 11, 46, 0.85);
+      color: var(--gold);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .container { max-width: 1380px; margin: 0 auto; padding: 16px; }
+    .view-panel { display: none; }
+    .view-panel.active { display: block; }
+
+    /* TV Board Styling matching Star Game aesthetic */
+    .tv-stage {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 16px 20px 28px;
+      border-radius: 22px;
+      border: 2px solid rgba(250, 204, 21, 0.55);
+      background: linear-gradient(180deg, rgba(28, 12, 68, 0.92), rgba(11, 5, 28, 0.96));
+      box-shadow: 0 0 40px rgba(124, 58, 237, 0.35);
+    }
+    .tv-crown-banner {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .tv-game-title {
+      display: inline-block;
+      padding: 8px 28px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #b45309, #facc15, #b45309);
+      color: #19082b;
+      font-weight: 900;
+      font-size: clamp(1.3rem, 3vw, 2.2rem);
+      text-transform: uppercase;
+      box-shadow: 0 0 24px rgba(250, 204, 21, 0.45);
+    }
+    .tv-round-bar {
+      margin-top: 10px;
+      display: inline-flex;
+      gap: 18px;
+      align-items: center;
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: rgba(15, 7, 36, 0.9);
+      border: 1px solid var(--border);
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--gold);
+    }
+    .tv-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin: 14px 0;
+    }
+    @media (max-width: 720px) { .tv-cards-grid { grid-template-columns: 1fr; } }
+
+    .result-card {
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+    }
+    .result-card.open-card {
+      background: linear-gradient(180deg, rgba(21, 128, 61, 0.72), rgba(6, 46, 22, 0.92));
+      box-shadow: 0 0 26px rgba(34, 197, 94, 0.28);
+    }
+    .result-card.close-card {
+      background: linear-gradient(180deg, rgba(190, 24, 93, 0.72), rgba(76, 5, 25, 0.92));
+      box-shadow: 0 0 26px rgba(244, 63, 94, 0.28);
+    }
+    .card-label {
+      font-size: 1.45rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .card-subtimer {
+      margin-top: 4px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fef08a;
+    }
+    .card-panna {
+      margin: 12px 0 6px;
+      font-size: clamp(2.6rem, 6vw, 4.2rem);
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: #ffffff;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+    }
+    .card-ank {
+      font-size: 1.55rem;
+      font-weight: 900;
+      color: #fde047;
+    }
+    .tv-jodi-strip {
+      text-align: center;
+      margin: 10px 0 16px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(250, 204, 21, 0.12);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    /* Last 10 Results Table */
+    .history-header {
+      text-align: center;
+      font-weight: 900;
+      font-size: 1.25rem;
+      color: var(--gold);
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    .tv-table-wrap {
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 2px solid var(--gold);
+      background: #ffffff;
+      color: #0f172a;
+    }
+    table.results-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      font-weight: 800;
+    }
+    table.results-table th {
+      background: linear-gradient(90deg, #1d4ed8, #2563eb);
+      color: #ffffff;
+      padding: 10px 8px;
+      font-size: 0.92rem;
+    }
+    table.results-table td {
+      padding: 8px;
+      border-bottom: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+    }
+    table.results-table tr:nth-child(even) td { background: #eff6ff; }
+    table.results-table td.idx-cell {
+      background: #1e3a8a;
+      color: #ffffff;
+      width: 48px;
+    }
+
+    .tv-ticker {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(15, 7, 36, 0.9);
+      border: 1px solid var(--border);
+      text-align: center;
+      color: #e9d5ff;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    /* Admin & Counter Cards */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 960px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn {
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 800;
+      font-size: 0.86rem;
+      cursor: pointer;
+    }
+    .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-2)); color: #19092d; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-dark { background: var(--bg-card-2); color: #fff; border: 1px solid var(--border); }
+
+    input, select {
+      padding: 9px 11px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: #0b051d;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* Counter PC Number Grids */
+    .num-grid-10 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .num-grid-100 {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding-right: 4px;
+    }
+    @media (max-width: 600px) { .num-grid-100 { grid-template-columns: repeat(5, 1fr); } }
+
+    .pick-tile {
+      padding: 10px 4px;
+      border-radius: 8px;
+      background: var(--bg-card-2);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+      color: #fff;
+      font-weight: 800;
+      text-align: center;
+      cursor: pointer;
+    }
+    .pick-tile:hover {
+      background: var(--gold);
+      color: #19092d;
+    }
+    .pick-tile.locked {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .lock-banner {
+      display: none;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(220, 38, 38, 0.25);
+      border: 1px solid #f87171;
+      color: #fecaca;
+      font-weight: 800;
+      text-align: center;
+    }
+    .lock-banner.show { display: block; }
+
+    .slip-item-list {
+      max-height: 210px;
+      overflow-y: auto;
+      margin: 10px 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 8px;
+      background: #0b051d;
+    }
+    .slip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 4px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+      font-size: 0.88rem;
+    }
+
+    /* PIN Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      z-index: 60;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-box {
+      width: 100%;
+      max-width: 380px;
+      background: var(--bg-card);
+      border: 1px solid var(--gold);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    /* Thermal Slip Print Area */
+    #printReceiptArea { display: none; }
+    @media print {
+      body * { visibility: hidden !important; }
+      #printReceiptArea, #printReceiptArea * {
+        visibility: visible !important;
+      }
+      #printReceiptArea {
+        display: block !important;
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 58mm;
+        padding: 4mm;
+        background: #fff;
+        color: #000;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+      }
+    }
+    .barcode-bars {
+      font-family: 'Libre Barcode 39', 'Courier New', monospace;
+      font-size: 20px;
+      letter-spacing: 2px;
+      text-align: center;
+      margin: 6px 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-title">👑 FUN COUNTER GAME — ADMIN & SCREENS</div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabTv" onclick="switchTab('tv')">📺 TV Screen</button>
+      <button class="tab-btn" id="tabCounter" onclick="switchTab('counter')">🖥️ Counter PC</button>
+      <button class="tab-btn" id="tabAdmin" onclick="requestAdminAccess()">📱 Admin Web</button>
+      <button class="btn btn-dark" onclick="lockAdminSession()">🔒 Lock Admin</button>
+    </div>
+  </header>
+
+  <button class="secret-lock-btn" onclick="requestAdminAccess()">🔐 Admin</button>
+
+  <!-- 1. TV DISPLAY SCREEN -->
+  <section id="view-tv" class="view-panel active container">
+    <div class="tv-stage">
+      <div class="tv-crown-banner">
+        <div class="tv-game-title" id="tvGameTitle">👑 STAR FUN COUNTER GAME 👑</div>
+        <div>
+          <div class="tv-round-bar">
+            <span>ROUND #<span id="tvRoundNum">108</span></span>
+            <span>|</span>
+            <span id="tvSlotBadge">OPEN (5 MIN)</span>
+            <span>|</span>
+            <span>TIMER: <span id="tvTimer">05:00</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tv-cards-grid">
+        <div class="result-card open-card">
+          <div class="card-label">OPEN</div>
+          <div class="card-subtimer" id="tvOpenSub">5 MIN SLOT</div>
+          <div class="card-panna" id="tvOpenPanna">---</div>
+          <div class="card-ank">अंक : <span id="tvOpenAnk">-</span></div>
+        </div>
+
+        <div class="result-card close-card">
+          <div class="card-label">CLOSE</div>
+          <div class="card-subtimer" id="tvCloseSub">5 MIN SLOT</div>
+          <div class="card-panna" id="tvClosePanna">---</div>
+          <div class="card-ank">अंक : <span id="tvCloseAnk">-</span></div>
+        </div>
+      </div>
+
+      <div class="tv-jodi-strip">
+        JODI : <span id="tvJodi">--</span>
+      </div>
+
+      <div class="history-header">★ LAST 10 RESULTS ★</div>
+      <div class="tv-table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>OPEN PANNA</th>
+              <th>OPEN</th>
+              <th>CLOSE PANNA</th>
+              <th>CLOSE</th>
+            </tr>
+          </thead>
+          <tbody id="tvLast10Body"></tbody>
+        </table>
+      </div>
+
+      <div class="tv-ticker" id="tvAnnouncement">5 MIN OPEN | 5 MIN CLOSE | FUN COUNTER GAME</div>
+    </div>
+  </section>
+
+  <!-- 2. CUSTOMER COUNTER PC SCREEN -->
+  <section id="view-counter" class="view-panel container">
+    <div id="counterLockBanner" class="lock-banner">
+      🔒 SLOT LOCKED / PAUSED — WAITING FOR RESULT OR NEXT ROUND
+    </div>
+
+    <div class="grid-2">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🎯 Single Ank, Jodi & Panna Selection</span>
+          <span id="counterSlotInfo" style="color:#4ade80;">OPEN SLOT</span>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <button class="btn btn-gold" id="modeSingleBtn" onclick="setCounterMode('SINGLE')">Single Ank (9x)</button>
+          <button class="btn btn-dark" id="modeJodiBtn" onclick="setCounterMode('JODI')">Jodi (90x)</button>
+          <button class="btn btn-dark" id="modePannaBtn" onclick="setCounterMode('PANNA')">Panna (140x/280x/600x)</button>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+          <label style="font-size:0.85rem; color:var(--muted);">Points per Pick:</label>
+          <input type="number" id="counterPointsInput" value="100" min="10" step="10" style="width:110px;" />
+          <button class="btn btn-dark" onclick="setPresetPoints(50)">+50</button>
+          <button class="btn btn-dark" onclick="setPresetPoints(100)">+100</button>
+          <button class="btn btn-dark" onclick="setPresetPoints(500)">+500</button>
+          <button class="btn btn-dark" onclick="setPresetPoints(1000)">+1000</button>
+        </div>
+
+        <div id="pickerSingle">
+          <div style="font-size:0.85rem; color:var(--muted);">Tap Single Ank (0–9):</div>
+          <div class="num-grid-10" id="singleGrid"></div>
+        </div>
+
+        <div id="pickerJodi" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <span style="font-size:0.85rem; color:var(--muted);">Tap Jodi (00–99) — Available in OPEN slot:</span>
+            <input type="text" id="jodiSearch" maxlength="2" placeholder="Search 00-99" oninput="renderJodiGrid()" style="width:120px;" />
+          </div>
+          <div class="num-grid-100" id="jodiGrid"></div>
+        </div>
+
+        <div id="pickerPanna" style="display:none;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <input type="text" id="customPannaInput" maxlength="3" placeholder="3-Digit Panna (e.g. 145)" style="width:180px;" />
+            <button class="btn btn-green" onclick="addCustomPanna()">Add Panna</button>
+          </div>
+          <div style="font-size:0.82rem; color:var(--muted); margin-top:8px;">Quick Panna Picks (by Ank):</div>
+          <div class="num-grid-10" id="quickPannaGrid"></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🧾 Counter Slip & Thermal Print</span>
+          <span>Round #<span id="counterRoundNum">108</span></span>
+        </div>
+
+        <div class="slip-item-list" id="cartList">
+          <div style="color:var(--muted); font-size:0.85rem;">No picks added yet. Tap any number on the left.</div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.05rem; margin:10px 0;">
+          <span>Total Points:</span>
+          <span style="color:var(--gold);" id="cartTotalPts">0</span>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-gold" style="flex:1;" onclick="printCurrentSlip()">🖨️ Print Slip & Save</button>
+          <button class="btn btn-red" onclick="clearCart()">Clear</button>
+        </div>
+
+        <div style="margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.14);">
+          <div style="font-weight:800; font-size:0.92rem; color:var(--gold); margin-bottom:8px;">🔍 Slip Barcode / ID Check</div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="verifySlipInput" placeholder="Enter Slip ID (e.g. SLP-...)" style="flex:1;" />
+            <button class="btn btn-dark" onclick="verifySlip()">Verify</button>
+          </div>
+          <div id="verifySlipResult" style="margin-top:8px; font-size:0.86rem; color:#e2e8f0;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. ADMIN WEB DASHBOARD -->
+  <section id="view-admin" class="view-panel container">
+    <div class="grid-3" style="margin-bottom:16px;">
+      <div class="panel-card">
+        <div class="panel-title">⏱️ 10-Min Round Control</div>
+        <div style="font-size:0.9rem; margin-bottom:10px;">
+          Round: <b>#<span id="adminRoundNum">108</span></b> | Slot: <b id="adminSlotLabel">OPEN</b> | Left: <b id="adminTimerLabel">05:00</b>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-gold" id="pauseBtn" onclick="togglePause()">Pause</button>
+          <button class="btn btn-green" onclick="publishCurrentSlotNow()">Publish Slot Now</button>
+          <button class="btn btn-dark" onclick="startFreshRound()">Next Round</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">🤖 Auto Smart-Balance Engine</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.86rem; font-weight:700;">
+            <input type="checkbox" id="smartEngineToggle" checked onchange="updateSmartConfig()" />
+            Auto Hands-Free at 00:00
+          </label>
+          <select id="balancePreset" onchange="updateSmartConfig()">
+            <option value="strict_profit">Strict Profit (85%)</option>
+            <option value="balanced" selected>Balanced (75% Profit / 25% Hit)</option>
+            <option value="high_action">High Action (65% Profit / 35% Hit)</option>
+          </select>
+        </div>
+        <div style="font-size:0.84rem; color:var(--muted);">
+          Collected Chips: <b style="color:#4ade80;" id="adminCollectedChips">0</b> | Paid Out: <b style="color:#f87171;" id="adminPaidChips">0</b>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">🛡️ Admin PIN & Security</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="password" id="newPinInput" maxlength="8" placeholder="New PIN (4-8 digits)" style="width:165px;" />
+          <button class="btn btn-gold" onclick="changeAdminPin()">Update PIN</button>
+        </div>
+        <div id="pinStatusMsg" style="font-size:0.8rem; color:#86efac; margin-top:6px;">Default PIN: 2580 (Change recommended)</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel-card">
+        <div class="panel-title">✍️ Manual Result Override & TV Board Settings</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+          <div>
+            <label style="font-size:0.8rem; color:var(--muted);">Game Title on TV</label>
+            <input type="text" id="cfgTitleInput" style="width:100%;" onchange="saveBoardSettings()" />
+          </div>
+          <div>
+            <label style="font-size:0.8rem; color:var(--muted);">TV Ticker Message</label>
+            <input type="text" id="cfgTickerInput" style="width:100%;" onchange="saveBoardSettings()" />
+          </div>
+          <div>
+            <label style="font-size:0.8rem; color:var(--muted);">Force Open Panna (3 digits)</label>
+            <input type="text" id="manualOpenPanna" maxlength="3" placeholder="e.g. 145" style="width:100%;" />
+          </div>
+          <div>
+            <label style="font-size:0.8rem; color:var(--muted);">Force Close Panna (3 digits)</label>
+            <input type="text" id="manualClosePanna" maxlength="3" placeholder="e.g. 678" style="width:100%;" />
+          </div>
+        </div>
+        <button class="btn btn-green" onclick="applyManualResult()">Apply Manual Result to TV</button>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">📜 Recent Slips & Claim Control</div>
+        <div id="adminSlipsList" style="max-height:240px; overflow-y:auto;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIN Login Modal -->
+  <div id="pinModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="panel-title"><span>🔐 Admin Web Unlock</span></div>
+      <p style="font-size:0.86rem; color:var(--muted); margin-bottom:10px;">Enter Admin PIN to open Admin Web controls:</p>
+      <input type="password" id="pinModalInput" maxlength="8" placeholder="Enter PIN" style="width:100%; margin-bottom:10px;" />
+      <div id="pinErrorText" style="color:#f87171; font-size:0.82rem; margin-bottom:8px;"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn btn-dark" onclick="closePinModal()">Cancel</button>
+        <button class="btn btn-gold" onclick="submitPinLogin()">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Thermal Receipt -->
+  <div id="printReceiptArea"></div>
+
+  <script>
+    const STORAGE_KEY = "FUN_COUNTER_GAME_V1";
+    const PIN_HASH_KEY = "FUN_COUNTER_PIN_HASH";
+    const SIGN_SECRET = "FCG_ANTI_TAMPER_2026_KEY";
+
+    function simpleHash(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(16);
+    }
+
+    function signSlipData(payloadStr) {
+      return "SIG-" + simpleHash(SIGN_SECRET + "|" + payloadStr).toUpperCase();
+    }
+
+    if (!localStorage.getItem(PIN_HASH_KEY)) {
+      localStorage.setItem(PIN_HASH_KEY, simpleHash("2580"));
+    }
+
+    const PANNA_BY_ANK = {
+      "0": ["127", "136", "145", "190", "235", "280", "370", "460", "550", "668", "776", "000"],
+      "1": ["128", "137", "146", "236", "245", "290", "380", "470", "560", "119", "669", "111"],
+      "2": ["129", "138", "147", "156", "237", "246", "390", "480", "570", "129", "228", "222"],
+      "3": ["139", "148", "157", "238", "247", "256", "346", "490", "580", "337", "679", "333"],
+      "4": ["149", "158", "167", "239", "248", "257", "347", "356", "590", "446", "770", "444"],
+      "5": ["159", "168", "230", "249", "258", "267", "348", "357", "456", "555", "889", "555"],
+      "6": ["123", "169", "178", "240", "259", "268", "349", "358", "457", "330", "664", "666"],
+      "7": ["124", "133", "179", "250", "269", "278", "359", "368", "458", "467", "773", "777"],
+      "8": ["125", "134", "189", "260", "279", "369", "378", "459", "468", "567", "882", "888"],
+      "9": ["126", "135", "140", "234", "270", "289", "379", "469", "478", "568", "991", "999"]
+    };
+
+    const PAYOUT_MULT = { SINGLE: 9, JODI: 90, PANNA: 140 };
+
+    function pannaToAnk(panna) {
+      if (!/^\d{3}$/.test(panna)) return "-";
+      const sum = panna.split("").reduce((acc, d) => acc + Number(d), 0);
+      return String(sum % 10);
+    }
+
+    function defaultState() {
+      return {
+        gameTitle: "STAR FUN COUNTER GAME",
+        announcement: "5 MIN OPEN | 5 MIN CLOSE | FUN COUNTER GAME",
+        roundNumber: 108,
+        phase: "OPEN", // "OPEN" or "CLOSE"
+        secondsLeft: 300,
+        isPaused: false,
+        openPanna: null,
+        openAnk: null,
+        closePanna: null,
+        closeAnk: null,
+        jodi: null,
+        smartEnabled: true,
+        balancePreset: "balanced",
+        collectedChips: 0,
+        paidChips: 0,
+        slips: [],
+        last10: [
+          { round: 107, openPanna: "145", openAnk: "0", closePanna: "678", closeAnk: "1" },
+          { round: 106, openPanna: "235", openAnk: "7", closePanna: "458", closeAnk: "3" },
+          { round: 105, openPanna: "347", openAnk: "1", closePanna: "789", closeAnk: "8" },
+          { round: 104, openPanna: "126", openAnk: "6", closePanna: "567", closeAnk: "9" },
+          { round: 103, openPanna: "258", openAnk: "2", closePanna: "369", closeAnk: "4" },
+          { round: 102, openPanna: "458", openAnk: "5", closePanna: "678", closeAnk: "7" },
+          { round: 101, openPanna: "369", openAnk: "8", closePanna: "145", closeAnk: "0" },
+          { round: 100, openPanna: "567", openAnk: "3", closePanna: "258", closeAnk: "6" },
+          { round: 99,  openPanna: "678", openAnk: "1", closePanna: "347", closeAnk: "2" },
+          { round: 98,  openPanna: "126", openAnk: "9", closePanna: "458", closeAnk: "5" }
+        ]
+      };
+    }
+
+    let state = loadState();
+    let adminUnlocked = false;
+    let counterMode = "SINGLE";
+    let cart = [];
+    let failedPinAttempts = 0;
+    let pinLockUntil = 0;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        return { ...defaultState(), ...JSON.parse(raw) };
+      } catch (e) {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+    }
+
+    // Native Android bridge hook (called from MainActivity.java when APK device mode changes)
+    window.setDeviceScreenMode = function(mode) {
+      if (mode === "tv") {
+        document.body.classList.add("mode-tv");
+        showTabPanel("tv");
+      } else if (mode === "counter") {
+        document.body.classList.remove("mode-tv");
+        showTabPanel("counter");
+      }
+    };
+
+    function showTabPanel(tabName) {
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      const target = document.getElementById("view-" + tabName);
+      if (target) target.classList.add("active");
+      const btn = document.getElementById("tab" + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+      if (btn) btn.classList.add("active");
+    }
+
+    function switchTab(tabName) {
+      if (tabName === "admin") {
+        requestAdminAccess();
+        return;
+      }
+      showTabPanel(tabName);
+    }
+
+    function requestAdminAccess() {
+      if (adminUnlocked) {
+        showTabPanel("admin");
+        return;
+      }
+      document.getElementById("pinErrorText").textContent = "";
+      document.getElementById("pinModalInput").value = "";
+      document.getElementById("pinModal").classList.add("show");
+      setTimeout(() => document.getElementById("pinModalInput").focus(), 60);
+    }
+
+    function closePinModal() {
+      document.getElementById("pinModal").classList.remove("show");
+    }
+
+    function submitPinLogin() {
+      const now = Date.now();
+      if (now < pinLockUntil) {
+        const sec = Math.ceil((pinLockUntil - now) / 1000);
+        document.getElementById("pinErrorText").textContent = "Too many attempts. Wait " + sec + "s.";
+        return;
+      }
+      const entered = document.getElementById("pinModalInput").value.trim();
+      const storedHash = localStorage.getItem(PIN_HASH_KEY);
+      if (simpleHash(entered) === storedHash) {
+        failedPinAttempts = 0;
+        adminUnlocked = true;
+        closePinModal();
+        showTabPanel("admin");
+      } else {
+        failedPinAttempts++;
+        if (failedPinAttempts >= 5) {
+          pinLockUntil = Date.now() + 60000;
+          document.getElementById("pinErrorText").textContent = "5 wrong attempts! Locked for 60 seconds.";
+        } else {
+          document.getElementById("pinErrorText").textContent = "Invalid PIN (" + failedPinAttempts + "/5).";
+        }
+      }
+    }
+
+    function lockAdminSession() {
+      adminUnlocked = false;
+      showTabPanel("tv");
+    }
+
+    function changeAdminPin() {
+      const nextPin = document.getElementById("newPinInput").value.trim();
+      if (!/^\d{4,8}$/.test(nextPin)) {
+        alert("Please enter 4 to 8 digits for the new PIN.");
+        return;
+      }
+      localStorage.setItem(PIN_HASH_KEY, simpleHash(nextPin));
+      document.getElementById("newPinInput").value = "";
+      document.getElementById("pinStatusMsg").textContent = "New PIN saved securely.";
+    }
+
+    // Smart-Balance Result Selector across Single Ank, Jodi, and Panna
+    function pickSmartPannaForSlot(slot) {
+      const allPannas = Object.values(PANNA_BY_ANK).flat();
+      const roundSlips = state.slips.filter(s => s.roundNumber === state.roundNumber && s.status === "ACTIVE");
+
+      let hitChance = 0.25;
+      if (state.balancePreset === "strict_profit") hitChance = 0.15;
+      if (state.balancePreset === "high_action") hitChance = 0.35;
+
+      const scored = allPannas.map(panna => {
+        const ank = pannaToAnk(panna);
+        let payout = 0;
+        roundSlips.forEach(slip => {
+          slip.items.forEach(item => {
+            if (item.mode === "SINGLE" && item.slot === slot && item.num === ank) {
+              payout += item.points * PAYOUT_MULT.SINGLE;
+            }
+            if (item.mode === "PANNA" && item.slot === slot && item.num === panna) {
+              payout += item.points * PAYOUT_MULT.PANNA;
+            }
+            if (item.mode === "JODI" && item.num.length === 2) {
+              const first = slot === "OPEN" ? ank : (state.openAnk || "0");
+              const second = slot === "CLOSE" ? ank : (state.closeAnk || "0");
+              if (first + second === item.num) {
+                payout += item.points * PAYOUT_MULT.JODI;
+              }
+            }
+          });
+        });
+        return { panna, ank, payout };
+      });
+
+      scored.sort((a, b) => a.payout - b.payout);
+      const netAvailable = state.collectedChips - state.paidChips;
+      const shouldRewardPlayer = Math.random() < hitChance && netAvailable > 500;
+
+      if (shouldRewardPlayer) {
+        const affordableHits = scored.filter(x => x.payout > 0 && x.payout <= netAvailable * 0.4);
+        if (affordableHits.length > 0) {
+          return affordableHits[Math.floor(Math.random() * affordableHits.length)];
+        }
+      }
+
+      const lowestGroup = scored.filter(x => x.payout === scored[0].payout);
+      return lowestGroup[Math.floor(Math.random() * lowestGroup.length)];
+    }
+
+    function publishCurrentSlotNow() {
+      if (state.phase === "OPEN") {
+        const chosen = pickSmartPannaForSlot("OPEN");
+        state.openPanna = chosen.panna;
+        state.openAnk = chosen.ank;
+        state.phase = "CLOSE";
+        state.secondsLeft = 300;
+      } else {
+        const chosen = pickSmartPannaForSlot("CLOSE");
+        state.closePanna = chosen.panna;
+        state.closeAnk = chosen.ank;
+        state.jodi = (state.openAnk || "0") + chosen.ank;
+        state.last10.unshift({
+          round: state.roundNumber,
+          openPanna: state.openPanna || "---",
+          openAnk: state.openAnk || "-",
+          closePanna: state.closePanna,
+          closeAnk: state.closeAnk
+        });
+        state.last10 = state.last10.slice(0, 10);
+        state.roundNumber += 1;
+        state.phase = "OPEN";
+        state.secondsLeft = 300;
+        state.openPanna = null;
+        state.openAnk = null;
+        state.closePanna = null;
+        state.closeAnk = null;
+        state.jodi = null;
+      }
+      saveState();
+    }
+
+    function startFreshRound() {
+      state.roundNumber += 1;
+      state.phase = "OPEN";
+      state.secondsLeft = 300;
+      state.openPanna = null;
+      state.openAnk = null;
+      state.closePanna = null;
+      state.closeAnk = null;
+      state.jodi = null;
+      saveState();
+    }
+
+    function applyManualResult() {
+      const op = document.getElementById("manualOpenPanna").value.trim();
+      const cp = document.getElementById("manualClosePanna").value.trim();
+      if (op && /^\d{3}$/.test(op)) {
+        state.openPanna = op;
+        state.openAnk = pannaToAnk(op);
+      }
+      if (cp && /^\d{3}$/.test(cp)) {
+        state.closePanna = cp;
+        state.closeAnk = pannaToAnk(cp);
+      }
+      if (state.openAnk && state.closeAnk) {
+        state.jodi = state.openAnk + state.closeAnk;
+      }
+      saveState();
+    }
+
+    function saveBoardSettings() {
+      state.gameTitle = document.getElementById("cfgTitleInput").value.trim() || "STAR FUN COUNTER GAME";
+      state.announcement = document.getElementById("cfgTickerInput").value.trim() || "5 MIN OPEN | 5 MIN CLOSE | FUN COUNTER GAME";
+      saveState();
+    }
+
+    function updateSmartConfig() {
+      state.smartEnabled = document.getElementById("smartEngineToggle").checked;
+      state.balancePreset = document.getElementById("balancePreset").value;
+      saveState();
+    }
+
+    function togglePause() {
+      state.isPaused = !state.isPaused;
+      saveState();
+    }
+
+    // Counter PC Selection & Cart
+    function setCounterMode(mode) {
+      counterMode = mode;
+      ["SINGLE", "JODI", "PANNA"].forEach(m => {
+        const btn = document.getElementById("mode" + m.charAt(0) + m.slice(1).toLowerCase() + "Btn");
+        btn.className = m === mode ? "btn btn-gold" : "btn btn-dark";
+      });
+      document.getElementById("pickerSingle").style.display = mode === "SINGLE" ? "block" : "none";
+      document.getElementById("pickerJodi").style.display = mode === "JODI" ? "block" : "none";
+      document.getElementById("pickerPanna").style.display = mode === "PANNA" ? "block" : "none";
+    }
+
+    function setPresetPoints(pts) {
+      document.getElementById("counterPointsInput").value = pts;
+    }
+
+    function addPickToCart(mode, num) {
+      if (state.isPaused) return;
+      if (mode === "JODI" && state.phase !== "OPEN") {
+        alert("Jodi entries are allowed in OPEN slot.");
+        return;
+      }
+      const pts = parseInt(document.getElementById("counterPointsInput").value, 10) || 100;
+      cart.push({ mode, num, slot: state.phase, points: pts });
+      renderCart();
+    }
+
+    function addCustomPanna() {
+      const val = document.getElementById("customPannaInput").value.trim();
+      if (!/^\d{3}$/.test(val)) {
+        alert("Enter a valid 3-digit Panna.");
+        return;
+      }
+      addPickToCart("PANNA", val);
+      document.getElementById("customPannaInput").value = "";
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const list = document.getElementById("cartList");
+      if (!cart.length) {
+        list.innerHTML = '<div style="color:var(--muted); font-size:0.85rem;">No picks added yet. Tap any number on the left.</div>';
+        document.getElementById("cartTotalPts").textContent = "0";
+        return;
+      }
+      let total = 0;
+      list.innerHTML = cart.map((item, idx) => {
+        total += item.points;
+        return `<div class="slip-row">
+          <span><b>${item.mode}</b> [${item.num}] (${item.slot})</span>
+          <span><b>${item.points}</b> pts <button class="btn btn-red" style="padding:2px 7px; font-size:0.75rem;" onclick="removeCartItem(${idx})">x</button></span>
+        </div>`;
+      }).join("");
+      document.getElementById("cartTotalPts").textContent = String(total);
+    }
+
+    function removeCartItem(idx) {
+      cart.splice(idx, 1);
+      renderCart();
+    }
+
+    function printCurrentSlip() {
+      if (!cart.length) {
+        alert("Select at least one number first.");
+        return;
+      }
+      const totalPts = cart.reduce((s, x) => s + x.points, 0);
+      const slipId = "SLP-" + Date.now().toString().slice(-6) + "-" + Math.floor(10 + Math.random() * 89);
+      const nowStr = new Date().toLocaleString("en-IN");
+      const signPayload = slipId + "|" + state.roundNumber + "|" + totalPts + "|" + JSON.stringify(cart);
+      const signature = signSlipData(signPayload);
+
+      const slipRecord = {
+        slipId,
+        roundNumber: state.roundNumber,
+        createdAt: nowStr,
+        items: [...cart],
+        totalPoints: totalPts,
+        signature,
+        status: "ACTIVE"
+      };
+
+      state.slips.unshift(slipRecord);
+      state.collectedChips += totalPts;
+      cart = [];
+      saveState();
+
+      const receiptHtml = `
+        <div style="text-align:center; font-weight:bold; font-size:13px;">${state.gameTitle}</div>
+        <div style="text-align:center; font-size:10px;">FUN TOKENS / COUNTER SLIP</div>
+        <hr/>
+        <div>Slip ID: <b>${slipRecord.slipId}</b></div>
+        <div>Round : #${slipRecord.roundNumber}</div>
+        <div>Date/Time: ${slipRecord.createdAt}</div>
+        <hr/>
+        ${slipRecord.items.map(i => `<div>${i.mode} (${i.slot}) [${i.num}] : <b>${i.points}</b></div>`).join("")}
+        <hr/>
+        <div style="font-size:12px;"><b>TOTAL POINTS: ${slipRecord.totalPoints}</b></div>
+        <div class="barcode-bars">*${slipRecord.slipId}*</div>
+        <div style="text-align:center; font-size:9px;">${slipRecord.signature}</div>
+      `;
+      document.getElementById("printReceiptArea").innerHTML = receiptHtml;
+
+      if (window.AndroidNative && window.AndroidNative.printSlip) {
+        window.AndroidNative.printSlip(slipRecord.slipId);
+      } else {
+        window.print();
+      }
+    }
+
+    function verifySlip() {
+      const code = document.getElementById("verifySlipInput").value.trim().toUpperCase();
+      const box = document.getElementById("verifySlipResult");
+      const found = state.slips.find(s => s.slipId.toUpperCase() === code);
+      if (!found) {
+        box.innerHTML = '<span style="color:#f87171;">❌ Slip not found.</span>';
+        return;
+      }
+      const expectedSig = signSlipData(found.slipId + "|" + found.roundNumber + "|" + found.totalPoints + "|" + JSON.stringify(found.items));
+      if (found.signature !== expectedSig) {
+        box.innerHTML = '<span style="color:#f87171; font-weight:900;">🚨 TAMPERED / INVALID SIGNATURE!</span>';
+        return;
+      }
+      box.innerHTML = `✅ <b>${found.slipId}</b> | Round #${found.roundNumber} | Total: <b>${found.totalPoints}</b> | Status: <b>${found.status}</b>`;
+    }
+
+    function claimSlip(slipId) {
+      const slip = state.slips.find(s => s.slipId === slipId);
+      if (!slip || slip.status !== "ACTIVE") return;
+      slip.status = "CLAIMED";
+      state.paidChips += slip.totalPoints;
+      saveState();
+    }
+
+    function renderGrids() {
+      const sGrid = document.getElementById("singleGrid");
+      sGrid.innerHTML = Array.from({ length: 10 }, (_, d) =>
+        `<div class="pick-tile ${state.isPaused ? "locked" : ""}" onclick="addPickToCart('SINGLE', '${d}')">${d}</div>`
+      ).join("");
+
+      const qGrid = document.getElementById("quickPannaGrid");
+      qGrid.innerHTML = Array.from({ length: 10 }, (_, d) => {
+        const sample = PANNA_BY_ANK[String(d)][0];
+        return `<div class="pick-tile ${state.isPaused ? "locked" : ""}" onclick="addPickToCart('PANNA', '${sample}')">Ank ${d}<br><span style="font-size:0.75rem; color:#fde047;">${sample}</span></div>`;
+      }).join("");
+
+      renderJodiGrid();
+    }
+
+    function renderJodiGrid() {
+      const filter = (document.getElementById("jodiSearch").value || "").trim();
+      const jGrid = document.getElementById("jodiGrid");
+      const locked = state.isPaused || state.phase !== "OPEN";
+      const rows = [];
+      for (let i = 0; i < 100; i++) {
+        const code = String(i).padStart(2, "0");
+        if (filter && !code.includes(filter)) continue;
+        rows.push(`<div class="pick-tile ${locked ? "locked" : ""}" onclick="addPickToCart('JODI', '${code}')">${code}</div>`);
+      }
+      jGrid.innerHTML = rows.join("");
+    }
+
+    function formatTime(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, "0");
+      const s = String(sec % 60).padStart(2, "0");
+      return m + ":" + s;
+    }
+
+    function renderAll() {
+      document.getElementById("tvGameTitle").textContent = "👑 " + state.gameTitle + " 👑";
+      document.getElementById("tvRoundNum").textContent = String(state.roundNumber);
+      document.getElementById("tvSlotBadge").textContent = state.phase + " (5 MIN)";
+      document.getElementById("tvTimer").textContent = formatTime(state.secondsLeft);
+
+      // Blank while live timer is running; shows once published
+      document.getElementById("tvOpenPanna").textContent = state.openPanna || "---";
+      document.getElementById("tvOpenAnk").textContent = state.openAnk || "-";
+      document.getElementById("tvClosePanna").textContent = state.closePanna || "---";
+      document.getElementById("tvCloseAnk").textContent = state.closeAnk || "-";
+      document.getElementById("tvJodi").textContent = state.jodi || "--";
+      document.getElementById("tvAnnouncement").textContent = state.announcement;
+
+      const tbody = document.getElementById("tvLast10Body");
+      tbody.innerHTML = state.last10.slice(0, 10).map((row, idx) => `
+        <tr>
+          <td class="idx-cell">${idx + 1}</td>
+          <td>${row.openPanna}</td>
+          <td>${row.openAnk}</td>
+          <td>${row.closePanna}</td>
+          <td>${row.closeAnk}</td>
+        </tr>
+      `).join("");
+
+      // Counter Screen
+      document.getElementById("counterRoundNum").textContent = String(state.roundNumber);
+      document.getElementById("counterSlotInfo").textContent = state.phase + " SLOT";
+      document.getElementById("counterLockBanner").className = state.isPaused ? "lock-banner show" : "lock-banner";
+
+      // Admin Screen
+      document.getElementById("adminRoundNum").textContent = String(state.roundNumber);
+      document.getElementById("adminSlotLabel").textContent = state.phase;
+      document.getElementById("adminTimerLabel").textContent = formatTime(state.secondsLeft);
+      document.getElementById("pauseBtn").textContent = state.isPaused ? "Resume" : "Pause";
+      document.getElementById("smartEngineToggle").checked = state.smartEnabled;
+      document.getElementById("balancePreset").value = state.balancePreset;
+      document.getElementById("adminCollectedChips").textContent = String(state.collectedChips);
+      document.getElementById("adminPaidChips").textContent = String(state.paidChips);
+      document.getElementById("cfgTitleInput").value = state.gameTitle;
+      document.getElementById("cfgTickerInput").value = state.announcement;
+
+      const slipsDiv = document.getElementById("adminSlipsList");
+      if (!state.slips.length) {
+        slipsDiv.innerHTML = '<div style="color:var(--muted); font-size:0.85rem;">No slips printed yet.</div>';
+      } else {
+        slipsDiv.innerHTML = state.slips.slice(0, 20).map(s => `
+          <div class="slip-row">
+            <span><b>${s.slipId}</b> (#${s.roundNumber}) — ${s.totalPoints} pts [${s.status}]</span>
+            ${s.status === "ACTIVE" ? `<button class="btn btn-green" style="padding:4px 8px; font-size:0.75rem;" onclick="claimSlip('${s.slipId}')">Claim</button>` : ""}
+          </div>
+        `).join("");
+      }
+
+      renderGrids();
+    }
+
+    setInterval(() => {
+      if (state.isPaused) return;
+      if (state.secondsLeft > 0) {
+        state.secondsLeft -= 1;
+        document.getElementById("tvTimer").textContent = formatTime(state.secondsLeft);
+        document.getElementById("adminTimerLabel").textContent = formatTime(state.secondsLeft);
+      } else if (state.smartEnabled) {
+        publishCurrentSlotNow();
+      }
+    }, 1000);
+
+    // URL parameter support (?screen=tv or ?screen=counter)
+    const params = new URLSearchParams(window.location.search);
+    const paramScreen = params.get("screen");
+    if (paramScreen === "tv") {
+      document.body.classList.add("mode-tv");
+      showTabPanel("tv");
+    } else if (paramScreen === "counter") {
+      showTabPanel("counter");
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
