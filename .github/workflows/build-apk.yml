@@ -18,11 +18,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 34
-          build-tools: 34.0.0
+      - name: Check Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/platforms" || true
+          ls -la "$ANDROID_HOME/build-tools" || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
