@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fun Target Game</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { margin: 0; background: #111827; color: #f9fafb; padding: 16px; }
+    .card { background: #1f2937; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    h1 { margin: 0 0 6px; font-size: 22px; color: #fbbf24; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .badge { background: #374151; padding: 6px 12px; border-radius: 8px; font-weight: bold; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 8px; border: 1px solid #4b5563; font-size: 15px; }
+    input, select { background: #111827; color: #fff; }
+    button { background: #10b981; color: #052e16; font-weight: bold; border: none; cursor: pointer; }
+    button:active { opacity: 0.85; }
+    .msg { margin-top: 10px; padding: 10px; border-radius: 8px; background: #064e3b; color: #d1fae5; display: none; }
+    ul { padding-left: 18px; margin: 8px 0 0; }
+    li { margin-bottom: 6px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Fun Target Game</h1>
+    <div class="row">
+      <div class="badge" id="chips">Chips: 100000</div>
+      <div class="badge" id="timer">Round: 10:00</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Mode</label>
+    <select id="mode">
+      <option value="Single">Single (0-9)</option>
+      <option value="Jodi">Jodi (00-99)</option>
+      <option value="Panna">Panna (3 Digits)</option>
+    </select>
+
+    <label>Number</label>
+    <input id="num" type="text" placeholder="उदा. 7 किंवा 45 किंवा 128" />
+
+    <label>Points</label>
+    <input id="pts" type="number" value="100" min="10" step="10" />
+
+    <button onclick="placeBet()">Add Entry</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <strong>Entries</strong>
+    <ul id="list"></ul>
+  </div>
+
+  <script>
+    let chips = 100000;
+    let sec = 600;
+
+    setInterval(() => {
+      sec = sec > 0 ? sec - 1 : 600;
+      const m = String(Math.floor(sec / 60)).padStart(2, "0");
+      const s = String(sec % 60).padStart(2, "0");
+      document.getElementById("timer").textContent = `Round: ${m}:${s}`;
+    }, 1000);
+
+    function placeBet() {
+      const mode = document.getElementById("mode").value;
+      const num = document.getElementById("num").value.trim();
+      const pts = parseInt(document.getElementById("pts").value, 10);
+      const msg = document.getElementById("msg");
+
+      if (!num || isNaN(pts) || pts <= 0) {
+        alert("कृपया योग्य नंबर आणि पॉइंट्स टाका.");
+        return;
+      }
+      if (pts > chips) {
+        alert("पुरेसे Chips शिल्लक नाहीत.");
+        return;
+      }
+
+      chips -= pts;
+      document.getElementById("chips").textContent = `Chips: ${chips}`;
+
+      const li = document.createElement("li");
+      li.textContent = `${mode} | #${num} | ${pts} pts`;
+      document.getElementById("list").prepend(li);
+
+      msg.textContent = `एंट्री जोडली: ${mode} - ${num} (${pts} pts)`;
+      msg.style.display = "block";
+      document.getElementById("num").value = "";
+    }
+  </script>
+</body>
+</html>
